@@ -1,4 +1,4 @@
-package espsdk
+package sleepwalker
 
 import "net/url"
 
@@ -11,21 +11,21 @@ type Creds interface {
 
 // Credentials represent a specific authorized application performing
 // operations on objects belonging to a specific ESP user.
-type credentials struct {
+type Credentials struct {
 	APIKey    string
 	APISecret string
 	Username  string
 	Password  string
 }
 
-func (c *credentials) areInvalid() bool {
+func (c *Credentials) AreInvalid() bool {
 	if len(c.APIKey) < 1 || len(c.APISecret) < 1 || len(c.Username) < 1 || len(c.Password) < 1 {
 		return true
 	}
 	return false
 }
 
-func formValues(c *credentials) url.Values {
+func FormValues(c *Credentials) url.Values {
 	v := url.Values{}
 	v.Set("client_id", c.APIKey)
 	v.Set("client_secret", c.APISecret)
