@@ -38,13 +38,11 @@ type RESTObject interface {
 	Findable
 }
 
-// A Token is a string representation of an OAuth2 token. It grants a user
-// access to the ESP API for a limited time.
+// A Token is a string representation of an OAuth2 token.
 type Token string
 
-// getToken submits the provided credentials to Getty's OAuth2 endpoint
-// and returns a token that can be used to authenticate HTTP requests to the
-// ESP API.
+// getToken submits the provided credentials to the OAuth2 endpoint and
+// returns a token that can be used to authenticate HTTP requests to the API.
 func getToken(credentials *Credentials, oAuthEndpoint string) Token {
 	if credentials.AreInvalid() {
 		Log.Fatal("Not all required credentials were supplied.")
@@ -69,15 +67,14 @@ func getToken(credentials *Credentials, oAuthEndpoint string) Token {
 
 var clientIDs []string
 
-// A Client is able to request an access token and submit HTTP requests to
-// the ESP API.
+// A Client uses an access token to submit HTTP requests to a REST API.
 type Client struct {
 	Credentials `json:"-"`
 	Token       Token  `json:"-"`
 	ID          string `json:"id"`
 }
 
-// GetClient returns a Client that can be used to send requests to the ESP API.
+// GetClient returns a Client that can be used to send requests to a REST API.
 func GetClient(key, secret, username, password, oAuthEndpoint, apiRoot string, logger *logrus.Logger) Client {
 	creds := Credentials{
 		APIKey:    key,

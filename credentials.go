@@ -10,7 +10,7 @@ type Creds interface {
 }
 
 // Credentials represent a specific authorized application performing
-// operations on objects belonging to a specific ESP user.
+// operations on objects belonging to a specific user.
 type Credentials struct {
 	APIKey    string `json:"api_key"`
 	APISecret string `json:"-"`
