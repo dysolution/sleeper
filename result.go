@@ -2,8 +2,6 @@ package sleepwalker
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"net/http"
 	"time"
 
 	"github.com/Sirupsen/logrus"
@@ -13,7 +11,7 @@ import (
 // its result, including timing and HTTP status codes.
 type Result struct {
 	request
-	VerboseResult
+	response
 }
 
 // Marshal serializes a FulfilledRequest into a byte stream.
@@ -36,7 +34,8 @@ func (r *Result) stats() logrus.Fields {
 		"method":        r.Verb,
 		"path":          r.Path,
 		"response_time": r.Duration * time.Millisecond,
-		"status_code":   r.Response.StatusCode,
+		"response_size": r.Size,
+		"status_code":   r.StatusCode,
 	}
 }
 
@@ -50,55 +49,6 @@ func (r *Result) Log() *logrus.Entry {
 func (r *Result) LogBrief() *logrus.Entry {
 	return Log.WithFields(logrus.Fields{
 		"response_time": r.Duration * time.Millisecond,
-		"status_code":   r.Response.StatusCode,
+		"status_code":   r.StatusCode,
 	})
-}
-
-// A Response contains the HTTP status code and text that represent the API's
-// response to a request.
-type Response struct {
-	StatusCode int    `json:"status_code"`
-	Status     string `json:"status"`
-}
-
-// A VerboseResult contains information relative to a completed request,
-// including the time elapsed to fulfill the request and any errors.
-type VerboseResult struct {
-	Response `json:"response"`
-	Payload  []byte        `json:"-"`
-	Duration time.Duration `json:"response_time"`
-}
-
-func getResult(c *http.Client, req *http.Request) (VerboseResult, error) {
-	desc := "getResult"
-	start := time.Now()
-	resp, err := c.Do(req)
-	duration := time.Since(start) / time.Millisecond
-	defer resp.Body.Close()
-	if err != nil {
-		Log.WithFields(logrus.Fields{
-			"error": err,
-		}).Error(desc + " (from http.Client.Do)")
-		return buildResult(resp, nil, duration), err
-	}
-
-	payload, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		Log.WithFields(logrus.Fields{
-			"error": err,
-		}).Error(desc + " (from ioutil.ReadAll)")
-		return buildResult(resp, payload, duration), err
-	}
-	return buildResult(resp, payload, duration), nil
-}
-
-func buildResult(resp *http.Response, payload []byte, duration time.Duration) VerboseResult {
-	return VerboseResult{
-		Response{
-			resp.StatusCode,
-			resp.Status,
-		},
-		payload,
-		duration,
-	}
 }

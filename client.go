@@ -210,7 +210,7 @@ func (c Client) performRequest(p request) (Result, error) {
 
 	p.addHeaders(p.Token, c.APIKey)
 
-	vr, err := getResult(insecureClient(), req)
+	vr, err := doRequest(insecureClient(), req)
 	if err != nil {
 		Log.Error(err)
 		return Result{}, err
