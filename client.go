@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
+	hashids "github.com/speps/go-hashids"
 )
 
 var pool *x509.CertPool
@@ -66,6 +67,8 @@ func getToken(credentials *Credentials, oAuthEndpoint string) Token {
 	return tokenFrom(payload)
 }
 
+var clientIDs []string
+
 // A Client is able to request an access token and submit HTTP requests to
 // the ESP API.
 type Client struct {
@@ -75,7 +78,7 @@ type Client struct {
 }
 
 // GetClient returns a Client that can be used to send requests to the ESP API.
-func GetClient(key, secret, username, password, oAuthEndpoint, apiRoot string) Client {
+func GetClient(key, secret, username, password, oAuthEndpoint, apiRoot string, logger *logrus.Logger) Client {
 	creds := Credentials{
 		APIKey:    key,
 		APISecret: secret,
@@ -83,8 +86,23 @@ func GetClient(key, secret, username, password, oAuthEndpoint, apiRoot string) C
 		Password:  password,
 	}
 	APIRoot = apiRoot
+	if logger != nil {
+		Log = logger
+	}
 	token := getToken(&creds, oAuthEndpoint)
-	return Client{creds, token}
+
+	hd := hashids.NewData()
+	hd.Salt = "farm to table salt"
+	hd.MinLength = 8
+	h := hashids.NewWithData(hd)
+	id, _ := h.Encode([]int{45, 434, 1313, 99})
+
+	return Client{creds, token, id}
+}
+
+// String implements fmt.Stringer.
+func (c Client) String() string {
+	return c.ID
 }
 
 // Create uses the provided metadata to create and object
