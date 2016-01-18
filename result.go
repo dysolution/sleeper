@@ -84,13 +84,6 @@ func getResult(c *http.Client, req *http.Request) (VerboseResult, error) {
 		Log.Error(err)
 		return buildResult(resp, payload, duration), nil
 	}
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		Log.WithFields(logrus.Fields{
-			"object":      "response",
-			"status_code": resp.StatusCode,
-			"status":      resp.Status,
-		}).Debug("getResult")
-	}
 	return buildResult(resp, payload, duration), nil
 }
 

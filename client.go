@@ -109,9 +109,10 @@ func (c Client) String() string {
 // and returns it along with metadata about the HTTP request, including
 // response time.
 func (c Client) Create(object Findable) (Result, error) {
+	desc := "Client.Create"
 	result, err := c.post(object)
 	if err != nil {
-		Log.Errorf("Client.Create: %v", err)
+		Log.Errorf("%v: %v", desc, err)
 		return Result{}, err
 	}
 	return result, nil
@@ -120,9 +121,10 @@ func (c Client) Create(object Findable) (Result, error) {
 // Update uses the provided metadata to update an object and returns
 // metadata about the HTTP request, including response time.
 func (c Client) Update(object Findable) (Result, error) {
+	desc := "Client.Update"
 	result, err := c.put(object)
 	if err != nil {
-		Log.Errorf("Client.Update: %v", err)
+		Log.Errorf("%v: %v", desc, err)
 		return Result{}, err
 	}
 	return result, nil
@@ -131,11 +133,12 @@ func (c Client) Update(object Findable) (Result, error) {
 // VerboseDelete destroys the object described by the provided object,
 // as long as enough data is provided to unambiguously identify it to the API.
 func (c Client) Delete(object Findable) (Result, error) {
+	desc := "Client.Delete"
 	result, err := c._delete(object.Path())
 	if err != nil {
 		Log.WithFields(logrus.Fields{
 			"error": err,
-		}).Errorf("Client.Delete: %v", err)
+		}).Errorf("%v: %v", desc, err)
 		return Result{}, err
 	}
 	return result, nil
@@ -145,11 +148,14 @@ func (c Client) Delete(object Findable) (Result, error) {
 // and returns it along with metadata about the HTTP request, including
 // response time.
 func (c Client) Get(object Findable) (Result, error) {
+	desc := "Client.Get"
+	Log.Debugf("%v: given object: %v", desc, object)
+	Log.Debugf("%v: attempting to get path: %v", desc, object.Path())
 	result, err := c.get(object.Path())
 	if err != nil {
 		Log.WithFields(logrus.Fields{
 			"error": err,
-		}).Errorf("Client.Get: %v", err)
+		}).Errorf("%v: %v", desc, err)
 		return Result{}, err
 	}
 	return result, nil
@@ -225,6 +231,7 @@ func insecureClient() *http.Client {
 // returns a struct that contains the HTTP status code and payload from
 // the server's response as well as metadata such as the response time.
 func (c Client) performRequest(p request) (Result, error) {
+	desc := "Client.performRequest"
 	uri := APIRoot + p.Path
 
 	if p.requiresAnObject() && p.Object != nil {
@@ -234,19 +241,36 @@ func (c Client) performRequest(p request) (Result, error) {
 	if err != nil {
 		Log.WithFields(logrus.Fields{
 			"error": err,
-		}).Debug("Client.performRequest")
+		}).Error(desc)
 		return Result{}, err
 	}
 	p.httpRequest = req
 
 	p.addHeaders(p.Token, c.APIKey)
 
-	result, err := getResult(insecureClient(), req)
+	vr, err := getResult(insecureClient(), req)
 	if err != nil {
 		Log.Error(err)
 		return Result{}, err
 	}
-	return Result{p, result}, nil
+	result := Result{p, vr}
+
+	switch {
+	case result.StatusCode < 300:
+		Log.WithFields(logrus.Fields{
+			"response_body": string(result.Payload),
+		}).Debug(desc)
+	case result.StatusCode >= 300 && result.StatusCode <= 400:
+		Log.WithFields(logrus.Fields{
+			"response_body": string(result.Payload),
+		}).Warn(desc)
+	case result.StatusCode >= 400:
+		Log.WithFields(logrus.Fields{
+			"response_body": string(result.Payload),
+		}).Error(desc)
+	}
+
+	return result, nil
 }
 
 func tokenFrom(payload []byte) Token {
