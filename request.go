@@ -46,18 +46,14 @@ func (p *request) addHeaders(token Token, apiKey string) {
 
 // Marshal serializes an object into a byte slice.
 func Marshal(object interface{}) ([]byte, error) {
-	bytes, err := IndentedJSON(object)
+	bytes, err := json.MarshalIndent(obj, "", "\t")
 	if err != nil {
 		Log.WithFields(logrus.Fields{
 			"error": err,
-		}).Errorf("sleepwalker.Marshal")
+		}).Error("sleepwalker.Marshal")
 		return nil, err
 	}
 	return bytes, nil
-}
-
-func IndentedJSON(obj interface{}) ([]byte, error) {
-	return json.MarshalIndent(obj, "", "\t")
 }
 
 // Unmarshal attempts to deserialize the provided JSON payload
@@ -66,7 +62,9 @@ func Unmarshal(payload []byte) interface{} {
 	var dest interface{}
 	err := json.Unmarshal(payload, &dest)
 	if err != nil {
-		Log.Error(err)
+		Log.WithFields(logrus.Fields{
+			"error": err,
+		}).Error("sleepwalker.Unmarshal")
 	}
 	return dest
 }
