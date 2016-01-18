@@ -46,7 +46,7 @@ func (p *request) addHeaders(token Token, apiKey string) {
 
 // Marshal serializes an object into a byte slice.
 func Marshal(object interface{}) ([]byte, error) {
-	bytes, err := json.MarshalIndent(obj, "", "\t")
+	bytes, err := json.MarshalIndent(object, "", "\t")
 	if err != nil {
 		Log.WithFields(logrus.Fields{
 			"error": err,
