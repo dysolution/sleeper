@@ -69,8 +69,9 @@ func getToken(credentials *Credentials, oAuthEndpoint string) Token {
 // A Client is able to request an access token and submit HTTP requests to
 // the ESP API.
 type Client struct {
-	Credentials
-	Token Token
+	Credentials `json:"-"`
+	Token       Token  `json:"-"`
+	ID          string `json:"id"`
 }
 
 // GetClient returns a Client that can be used to send requests to the ESP API.

@@ -12,10 +12,10 @@ type Creds interface {
 // Credentials represent a specific authorized application performing
 // operations on objects belonging to a specific ESP user.
 type Credentials struct {
-	APIKey    string
-	APISecret string
-	Username  string
-	Password  string
+	APIKey    string `json:"api_key"`
+	APISecret string `json:"-"`
+	Username  string `json:"username"`
+	Password  string `json:"-"`
 }
 
 func (c *Credentials) AreInvalid() bool {
