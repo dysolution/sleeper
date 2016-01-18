@@ -70,19 +70,24 @@ type VerboseResult struct {
 }
 
 func getResult(c *http.Client, req *http.Request) (VerboseResult, error) {
+	desc := "getResult"
 	start := time.Now()
 	resp, err := c.Do(req)
 	duration := time.Since(start) / time.Millisecond
+	defer resp.Body.Close()
 	if err != nil {
-		Log.Error(err)
+		Log.WithFields(logrus.Fields{
+			"error": err,
+		}).Error(desc + " (from http.Client.Do)")
 		return buildResult(resp, nil, duration), err
 	}
-	defer resp.Body.Close()
 
 	payload, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		Log.Error(err)
-		return buildResult(resp, payload, duration), nil
+		Log.WithFields(logrus.Fields{
+			"error": err,
+		}).Error(desc + " (from ioutil.ReadAll)")
+		return buildResult(resp, payload, duration), err
 	}
 	return buildResult(resp, payload, duration), nil
 }

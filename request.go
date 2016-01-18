@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+
+	"github.com/Sirupsen/logrus"
 )
 
 // A Request represents the specific API endpoint and action to take. The Object is optional and applies only to endpoints that create or update items (POST and PUT).
@@ -43,7 +45,16 @@ func (p *request) addHeaders(token Token, apiKey string) {
 }
 
 // Marshal serializes an object into a byte slice.
-func Marshal(object interface{}) ([]byte, error) { return IndentedJSON(object) }
+func Marshal(object interface{}) ([]byte, error) {
+	bytes, err := IndentedJSON(object)
+	if err != nil {
+		Log.WithFields(logrus.Fields{
+			"error": err,
+		}).Errorf("sleepwalker.Marshal")
+		return nil, err
+	}
+	return bytes, nil
+}
 
 func IndentedJSON(obj interface{}) ([]byte, error) {
 	return json.MarshalIndent(obj, "", "\t")
