@@ -107,59 +107,32 @@ func (c Client) String() string {
 // and returns it along with metadata about the HTTP request, including
 // response time.
 func (c Client) Create(object Findable) (Result, error) {
-	desc := "Client.Create"
-	result, err := c.reqWithPayload("POST", object)
-	if err != nil {
-		log.Errorf("%v: %v", desc, err)
-		return Result{}, err
-	}
-	return result, nil
+	return c.reqWithPayload("POST", object)
 }
 
 // Update uses the provided metadata to update an object and returns
 // metadata about the HTTP request, including response time.
 func (c Client) Update(object Findable) (Result, error) {
-	desc := "Client.Update"
-	result, err := c.reqWithPayload("PUT", object)
-	if err != nil {
-		Log.Errorf("%v: %v", desc, err)
-		return Result{}, err
-	}
-	return result, nil
+	return c.reqWithPayload("PUT", object)
 }
 
 // Delete destroys the object described by the provided object, as long as
 // enough data is provided to unambiguously identify it to the API, and returns
 // metadta about the HTTP request, including response time.
 func (c Client) Delete(object Findable) (Result, error) {
-	desc := "Client.Delete"
-	result, err := c.req("DELETE", object.Path())
-	if err != nil {
-		Log.WithFields(logrus.Fields{
-			"error": err,
-		}).Errorf("%v: %v", desc, err)
-		return Result{}, err
-	}
-	return result, nil
+	return c.req("DELETE", object.Path())
 }
 
 // Get uses the provided metadata to request an object from the API
 // and returns it along with metadata about the HTTP request, including
 // response time.
 func (c Client) Get(object Findable) (Result, error) {
-	Log.WithFields(logrus.Fields{
-		"path":   object.Path(),
-		"object": object,
-	}).Debugf("Client.Get")
 	return c.req("GET", object.Path())
 }
 
 // GetPath performs an HTTP GET against the provided path and returns metadata
 // about the HTTP request, including response time.
 func (c Client) GetPath(path string) (Result, error) {
-	Log.WithFields(logrus.Fields{
-		"path": path,
-	}).Debugf("Client.GetPath")
 	return c.req("GET", path)
 }
 
