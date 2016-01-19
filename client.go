@@ -13,8 +13,9 @@ import (
 )
 
 var pool *x509.CertPool
-var Log *logrus.Logger
+var log *logrus.Logger
 
+// A RESTClient can perform operations against a REST API.
 type RESTClient interface {
 	Get(Findable) (Result, error)
 	Create(Findable) (Result, error)
@@ -22,8 +23,7 @@ type RESTClient interface {
 	Delete(Findable) (Result, error)
 }
 
-// Serializable objects can be Marshaled into JSON.
-type Serializable interface {
+type serializable interface {
 	Marshal() ([]byte, error)
 }
 
@@ -34,7 +34,7 @@ type Findable interface {
 
 // A RESTObject has a canonical API endpoint URL and can be serialized to JSON.
 type RESTObject interface {
-	Serializable
+	serializable
 	Findable
 }
 
@@ -45,24 +45,24 @@ type Token string
 // returns a token that can be used to authenticate HTTP requests to the API.
 func getToken(credentials *Credentials, oAuthEndpoint string) Token {
 	desc := "getToken"
-	if credentials.AreInvalid() {
-		Log.Fatal("Not all required credentials were supplied.")
+	if credentials.areInvalid() {
+		log.Fatal("Not all required credentials were supplied.")
 	}
 
 	uri := oAuthEndpoint
-	Log.Debugf("%v: %s", desc, uri)
-	formValues := FormValues(credentials)
-	Log.Debugf("%v: %s", desc, formValues.Encode())
+	log.Debugf("%v: %s", desc, uri)
+	values := formValues(credentials)
+	log.Debugf("%v: %s", desc, values.Encode())
 
-	resp, err := http.PostForm(uri, formValues)
+	resp, err := http.PostForm(uri, values)
 	if err != nil {
-		Log.Fatal(err)
+		log.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	payload, err := ioutil.ReadAll(resp.Body)
-	Log.Debugf("%v: %v", desc, resp.Status)
-	Log.Debugf("%v: %s", desc, payload)
+	log.Debugf("%v: %v", desc, resp.Status)
+	log.Debugf("%v: %s", desc, payload)
 	return tokenFrom(payload)
 }
 
@@ -73,6 +73,7 @@ type Client struct {
 	Credentials `json:"-"`
 	Token       Token  `json:"-"`
 	ID          string `json:"id"`
+	APIRoot     string `json:"api_root"`
 }
 
 // GetClient returns a Client that can be used to send requests to a REST API.
@@ -83,9 +84,8 @@ func GetClient(key, secret, username, password, oAuthEndpoint, apiRoot string, l
 		Username:  username,
 		Password:  password,
 	}
-	APIRoot = apiRoot
 	if logger != nil {
-		Log = logger
+		log = logger
 	}
 	token := getToken(&creds, oAuthEndpoint)
 
@@ -95,7 +95,7 @@ func GetClient(key, secret, username, password, oAuthEndpoint, apiRoot string, l
 	h := hashids.NewWithData(hd)
 	id, _ := h.Encode([]int{45, 434, 1313, 99})
 
-	return Client{creds, token, id}
+	return Client{creds, token, id, apiRoot}
 }
 
 // String implements fmt.Stringer.
@@ -110,7 +110,7 @@ func (c Client) Create(object Findable) (Result, error) {
 	desc := "Client.Create"
 	result, err := c.reqWithPayload("POST", object)
 	if err != nil {
-		Log.Errorf("%v: %v", desc, err)
+		log.Errorf("%v: %v", desc, err)
 		return Result{}, err
 	}
 	return result, nil
@@ -128,8 +128,9 @@ func (c Client) Update(object Findable) (Result, error) {
 	return result, nil
 }
 
-// VerboseDelete destroys the object described by the provided object,
-// as long as enough data is provided to unambiguously identify it to the API.
+// Delete destroys the object described by the provided object, as long as
+// enough data is provided to unambiguously identify it to the API, and returns
+// metadta about the HTTP request, including response time.
 func (c Client) Delete(object Findable) (Result, error) {
 	desc := "Client.Delete"
 	result, err := c.req("DELETE", object.Path())
@@ -194,16 +195,19 @@ func insecureClient() *http.Client {
 // the server's response as well as metadata such as the response time.
 func (c Client) performRequest(p request) (Result, error) {
 	desc := "Client.performRequest"
-	uri := APIRoot + p.Path
+	uri := c.APIRoot + p.Path
 
 	if p.requiresAnObject() && p.Object != nil {
-		Log.Debugf("Received serialized object: %s", p.Object)
+		log.WithFields(logrus.Fields{
+			"object": p.Object,
+		}).Debugf(desc)
 	}
 	req, err := http.NewRequest(p.Verb, uri, bytes.NewBuffer(p.Object))
 	if err != nil {
-		Log.WithFields(logrus.Fields{
-			"error": err,
-		}).Error(desc + " (from http.NewRequest)")
+		log.WithFields(logrus.Fields{
+			"error":  err,
+			"source": "http.NewRequest",
+		}).Error(desc)
 		return Result{}, err
 	}
 	p.httpRequest = req
@@ -212,7 +216,10 @@ func (c Client) performRequest(p request) (Result, error) {
 
 	vr, err := doRequest(insecureClient(), req)
 	if err != nil {
-		Log.Error(err)
+		log.WithFields(logrus.Fields{
+			"error":  err,
+			"source": "doRequest",
+		}).Error(desc)
 		return Result{}, err
 	}
 	result := Result{p, vr}
@@ -225,7 +232,7 @@ func (c Client) performRequest(p request) (Result, error) {
 // logResult captures information that can help with analysis and
 // troubleshooting and maps HTTP status classes to analagous log levels.
 func logResult(desc string, result Result) {
-	logEntry := Log.WithFields(logrus.Fields{
+	logEntry := log.WithFields(logrus.Fields{
 		"method":        result.Verb,
 		"path":          result.Path,
 		"response_body": string(result.Payload),

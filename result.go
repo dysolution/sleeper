@@ -24,6 +24,8 @@ func (r *Result) MarshalIndent() ([]byte, error) {
 	return json.MarshalIndent(r, "", "    ")
 }
 
+// ResponseTime reflects the time elapsed while waiting for the response after
+// sending an HTTP request.
 func (r *Result) ResponseTime() *time.Duration {
 	return &r.Duration
 }
@@ -42,12 +44,12 @@ func (r *Result) stats() logrus.Fields {
 // Log provides a convenient way to output information about an HTTP request
 // the user is likely to want.
 func (r *Result) Log() *logrus.Entry {
-	return Log.WithFields(r.stats())
+	return log.WithFields(r.stats())
 }
 
 // LogBrief logs only an HTTP request's status code and response time.
 func (r *Result) LogBrief() *logrus.Entry {
-	return Log.WithFields(logrus.Fields{
+	return log.WithFields(logrus.Fields{
 		"response_time": r.Duration * time.Millisecond,
 		"status_code":   r.StatusCode,
 	})

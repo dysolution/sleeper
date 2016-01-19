@@ -33,7 +33,7 @@ func timeResponse(c *http.Client, req *http.Request) (*http.Response, time.Durat
 	resp, err := c.Do(req)
 	duration := time.Since(start) / time.Millisecond
 	if err != nil {
-		Log.WithFields(logrus.Fields{
+		log.WithFields(logrus.Fields{
 			"error": err,
 		}).Error(desc + " (from http.Client.Do)")
 	}
@@ -44,7 +44,7 @@ func analyzeResponse(resp *http.Response, duration time.Duration) (response, err
 	desc := "getResponse"
 	payload, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		Log.WithFields(logrus.Fields{
+		log.WithFields(logrus.Fields{
 			"error": err,
 		}).Error(desc + " (from ioutil.ReadAll)")
 		return response{resp.StatusCode, resp.Status, payload, duration, len(payload)}, err
