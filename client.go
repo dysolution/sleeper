@@ -107,9 +107,6 @@ func GetClient(key, secret, username, password, oAuthEndpoint, apiRoot string, l
 	}
 	token := getToken(&creds, oAuthEndpoint)
 	id := randHex(4)
-	log.WithFields(map[string]interface{}{
-		"id": id,
-	}).Info("sleepwalker.GetClient")
 	return &Client{creds, token, id, apiRoot}
 }
 
