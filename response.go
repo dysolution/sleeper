@@ -33,10 +33,12 @@ func doRequest(c *http.Client, req *http.Request) (response, error) {
 }
 
 func timeResponse(c *http.Client, req *http.Request) (*http.Response, time.Duration, error) {
-	desc := "timeRequest"
+	desc := "timeResponse"
+
 	start := time.Now()
 	resp, err := c.Do(req)
 	duration := time.Since(start) / time.Millisecond
+
 	if err != nil {
 		log.WithFields(map[string]interface{}{
 			"error": err,
@@ -46,7 +48,8 @@ func timeResponse(c *http.Client, req *http.Request) (*http.Response, time.Durat
 }
 
 func analyzeResponse(resp *http.Response, duration time.Duration) (response, error) {
-	desc := "getResponse"
+	desc := "analyzeResponse"
+
 	payload, err := ioutil.ReadAll(resp.Body)
 	response := response{resp.StatusCode, resp.Status, payload, duration, len(payload)}
 	resp.Body.Close()
