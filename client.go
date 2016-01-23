@@ -6,10 +6,10 @@ import (
 	"crypto/x509"
 	"encoding/json"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
 
 	"github.com/Sirupsen/logrus"
-	hashids "github.com/speps/go-hashids"
 )
 
 var pool *x509.CertPool
@@ -76,6 +76,15 @@ type Client struct {
 	APIRoot     string `json:"api_root"`
 }
 
+func randHex(n int) string {
+	var letters = []rune("0123456789abcdef")
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
 // GetClient returns a Client that can be used to send requests to a REST API.
 func GetClient(key, secret, username, password, oAuthEndpoint, apiRoot string, logger *logrus.Logger) Client {
 	creds := Credentials{
@@ -88,14 +97,11 @@ func GetClient(key, secret, username, password, oAuthEndpoint, apiRoot string, l
 		log = logger
 	}
 	token := getToken(&creds, oAuthEndpoint)
-
-	hd := hashids.NewData()
-	hd.Salt = "farm to table salt"
-	hd.MinLength = 8
-	h := hashids.NewWithData(hd)
-	id, _ := h.Encode([]int{45, 434, 1313, 99})
-
-	return Client{creds, token, id, apiRoot}
+	id := randHex(4)
+	log.WithFields(map[string]interface{}{
+		"id": id,
+	}).Info("sleepwalker.GetClient")
+	return &Client{creds, token, id, apiRoot}
 }
 
 // String implements fmt.Stringer.
