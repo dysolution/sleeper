@@ -31,8 +31,8 @@ func (r *Result) ResponseTime() *time.Duration {
 }
 
 // Stats returns fields that logrus can parse.
-func (r *Result) stats() logrus.Fields {
-	return logrus.Fields{
+func (r *Result) stats() map[string]interface{} {
+	return map[string]interface{}{
 		"method":        r.Verb,
 		"path":          r.Path,
 		"response_time": r.Duration * time.Millisecond,
@@ -49,7 +49,7 @@ func (r *Result) Log() *logrus.Entry {
 
 // LogBrief logs only an HTTP request's status code and response time.
 func (r *Result) LogBrief() *logrus.Entry {
-	return log.WithFields(logrus.Fields{
+	return log.WithFields(map[string]interface{}{
 		"response_time": r.Duration * time.Millisecond,
 		"status_code":   r.StatusCode,
 	})

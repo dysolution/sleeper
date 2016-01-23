@@ -50,9 +50,14 @@ func getToken(credentials *Credentials, oAuthEndpoint string) Token {
 	}
 
 	uri := oAuthEndpoint
-	log.Debugf("%v: %s", desc, uri)
+	log.WithFields(map[string]interface{}{
+		"path": uri,
+	}).Debug(desc)
+
 	values := formValues(credentials)
-	log.Debugf("%v: %s", desc, values.Encode())
+	log.WithFields(map[string]interface{}{
+		"values": values.Encode(),
+	}).Debug(desc)
 
 	resp, err := http.PostForm(uri, values)
 	if err != nil {
@@ -61,8 +66,10 @@ func getToken(credentials *Credentials, oAuthEndpoint string) Token {
 	defer resp.Body.Close()
 
 	payload, err := ioutil.ReadAll(resp.Body)
-	log.Debugf("%v: %v", desc, resp.Status)
-	log.Debugf("%v: %s", desc, payload)
+	log.WithFields(map[string]interface{}{
+		"status":  resp.Status,
+		"payload": string(payload),
+	}).Debug(desc)
 	return tokenFrom(payload)
 }
 
@@ -177,13 +184,17 @@ func (c Client) performRequest(p request) (Result, error) {
 	uri := c.APIRoot + p.Path
 
 	if p.requiresAnObject() && p.Object != nil {
-		log.WithFields(logrus.Fields{
-			"object": p.Object,
+		var obj interface{}
+		json.Unmarshal(p.Object, &obj)
+		log.WithFields(map[string]interface{}{
+			"method": p.Verb,
+			"path":   p.Path,
+			"object": obj,
 		}).Debugf(desc)
 	}
 	req, err := http.NewRequest(p.Verb, uri, bytes.NewBuffer(p.Object))
 	if err != nil {
-		log.WithFields(logrus.Fields{
+		log.WithFields(map[string]interface{}{
 			"error":  err,
 			"source": "http.NewRequest",
 		}).Error(desc)
@@ -195,7 +206,7 @@ func (c Client) performRequest(p request) (Result, error) {
 
 	vr, err := doRequest(insecureClient(), req)
 	if err != nil {
-		log.WithFields(logrus.Fields{
+		log.WithFields(map[string]interface{}{
 			"error":  err,
 			"source": "doRequest",
 		}).Error(desc)
@@ -211,7 +222,7 @@ func (c Client) performRequest(p request) (Result, error) {
 // logResult captures information that can help with analysis and
 // troubleshooting and maps HTTP status classes to analagous log levels.
 func logResult(desc string, result Result) {
-	logEntry := log.WithFields(logrus.Fields{
+	logEntry := log.WithFields(map[string]interface{}{
 		"method":        result.Verb,
 		"path":          result.Path,
 		"response_body": string(result.Payload),

@@ -4,8 +4,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"time"
-
-	"github.com/Sirupsen/logrus"
 )
 
 // A response contains information relative to a completed request,
@@ -33,9 +31,9 @@ func timeResponse(c *http.Client, req *http.Request) (*http.Response, time.Durat
 	resp, err := c.Do(req)
 	duration := time.Since(start) / time.Millisecond
 	if err != nil {
-		log.WithFields(logrus.Fields{
+		log.WithFields(map[string]interface{}{
 			"error": err,
-		}).Error(desc + " (from http.Client.Do)")
+		}).Error(desc)
 	}
 	return resp, duration, err
 }
@@ -44,7 +42,7 @@ func analyzeResponse(resp *http.Response, duration time.Duration) (response, err
 	desc := "getResponse"
 	payload, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		log.WithFields(logrus.Fields{
+		log.WithFields(map[string]interface{}{
 			"error": err,
 		}).Error(desc + " (from ioutil.ReadAll)")
 		return response{resp.StatusCode, resp.Status, payload, duration, len(payload)}, err
