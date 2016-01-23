@@ -1,6 +1,7 @@
 package sleepwalker
 
 import (
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -18,9 +19,15 @@ type response struct {
 
 func doRequest(c *http.Client, req *http.Request) (response, error) {
 	resp, duration, err := timeResponse(c, req)
-	defer resp.Body.Close()
 	if err != nil {
-		return response{resp.StatusCode, resp.Status, nil, duration, 0}, err
+		if resp != nil {
+			code := resp.StatusCode
+			status := resp.Status
+			resp.Body.Close()
+			return response{code, status, nil, duration, 0}, err
+		} else {
+			return response{}, errors.New("nil response")
+		}
 	}
 	return analyzeResponse(resp, duration)
 }
@@ -41,11 +48,14 @@ func timeResponse(c *http.Client, req *http.Request) (*http.Response, time.Durat
 func analyzeResponse(resp *http.Response, duration time.Duration) (response, error) {
 	desc := "getResponse"
 	payload, err := ioutil.ReadAll(resp.Body)
+	response := response{resp.StatusCode, resp.Status, payload, duration, len(payload)}
+	resp.Body.Close()
+
 	if err != nil {
 		log.WithFields(map[string]interface{}{
 			"error": err,
 		}).Error(desc + " (from ioutil.ReadAll)")
-		return response{resp.StatusCode, resp.Status, payload, duration, len(payload)}, err
+		return response, err
 	}
-	return response{resp.StatusCode, resp.Status, payload, duration, len(payload)}, nil
+	return response, nil
 }

@@ -15,6 +15,8 @@ import (
 var pool *x509.CertPool
 var log *logrus.Logger
 
+var transport *http.Transport // avoid leaks
+
 // A RESTClient can perform operations against a REST API.
 type RESTClient interface {
 	Get(Findable) (Result, error)
@@ -93,7 +95,7 @@ func randHex(n int) string {
 }
 
 // GetClient returns a Client that can be used to send requests to a REST API.
-func GetClient(key, secret, username, password, oAuthEndpoint, apiRoot string, logger *logrus.Logger) Client {
+func GetClient(key, secret, username, password, oAuthEndpoint, apiRoot string, logger *logrus.Logger) *Client {
 	creds := Credentials{
 		APIKey:    key,
 		APISecret: secret,
@@ -162,18 +164,16 @@ func (c *Client) reqWithPayload(method string, object Findable) (Result, error) 
 	return c.performRequest(request)
 }
 
-// insecureClient returns an HTTP client that will not verify the validity
-// of an SSL certificate when performing a request.
-func insecureClient() *http.Client {
-	// pool = x509.NewCertPool()
-	// pool.AppendCertsFromPEM(pemCerts)
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
-		// RootCAs:            pool},
+// insecureTransport avoids leaks by memoizing a single transport.
+func insecureTransport() *http.Transport {
+	if transport == nil {
+		transport = &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
 	}
-	return &http.Client{Transport: tr}
+	return transport
 }
 
 // performRequest performs a request using the given parameters and
@@ -204,7 +204,7 @@ func (c Client) performRequest(p request) (Result, error) {
 
 	p.addHeaders(p.Token, c.APIKey)
 
-	vr, err := doRequest(insecureClient(), req)
+	vr, err := doRequest(&http.Client{Transport: insecureTransport()}, req)
 	if err != nil {
 		log.WithFields(map[string]interface{}{
 			"error":  err,
