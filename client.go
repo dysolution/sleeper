@@ -23,6 +23,7 @@ type RESTClient interface {
 	Create(Findable) (Result, error)
 	Update(Findable) (Result, error)
 	Delete(Findable) (Result, error)
+	Put(Findable, string) (Result, error)
 }
 
 type serializable interface {
@@ -128,6 +129,12 @@ func (c Client) Update(object Findable) (Result, error) {
 	return c.reqWithPayload("PUT", object)
 }
 
+// Put uses the provided metadata to perform an HTTP PUT against the provided
+// path and returns metadata about the HTTP request, including response time.
+func (c Client) Put(object Findable, path string) (Result, error) {
+	return c.reqWithPayloadAndPath("PUT", object, path)
+}
+
 // Delete destroys the object described by the provided object, as long as
 // enough data is provided to unambiguously identify it to the API, and returns
 // metadta about the HTTP request, including response time.
@@ -158,6 +165,15 @@ func (c *Client) reqWithPayload(method string, object Findable) (Result, error) 
 		return Result{}, err
 	}
 	request := newRequest(method, object.Path(), c.Token, serializedObject)
+	return c.performRequest(request)
+}
+
+func (c *Client) reqWithPayloadAndPath(method string, object Findable, path string) (Result, error) {
+	serializedObject, err := Marshal(object)
+	if err != nil {
+		return Result{}, err
+	}
+	request := newRequest(method, path, c.Token, serializedObject)
 	return c.performRequest(request)
 }
 
