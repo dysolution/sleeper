@@ -13,7 +13,7 @@ import (
 )
 
 var pool *x509.CertPool
-var log *logrus.Logger
+var Log *logrus.Logger
 
 var transport *http.Transport // avoid leaks
 
@@ -49,27 +49,27 @@ type Token string
 func getToken(credentials *Credentials, oAuthEndpoint string) Token {
 	desc := "getToken"
 	if credentials.areInvalid() {
-		log.Fatal("Not all required credentials were supplied.")
+		Log.Fatal("Not all required credentials were supplied.")
 	}
 
 	uri := oAuthEndpoint
-	log.WithFields(map[string]interface{}{
+	Log.WithFields(map[string]interface{}{
 		"path": uri,
 	}).Debug(desc)
 
 	values := formValues(credentials)
-	log.WithFields(map[string]interface{}{
+	Log.WithFields(map[string]interface{}{
 		"values": values.Encode(),
 	}).Debug(desc)
 
 	resp, err := http.PostForm(uri, values)
 	if err != nil {
-		log.Fatal(err)
+		Log.Fatal(err)
 	}
 	defer resp.Body.Close()
 
 	payload, err := ioutil.ReadAll(resp.Body)
-	log.WithFields(map[string]interface{}{
+	Log.WithFields(map[string]interface{}{
 		"status":  resp.Status,
 		"payload": string(payload),
 	}).Debug(desc)
@@ -104,7 +104,7 @@ func GetClient(key, secret, username, password, oAuthEndpoint, apiRoot string, l
 		Password:  password,
 	}
 	if logger != nil {
-		log = logger
+		Log = logger
 	}
 	token := getToken(&creds, oAuthEndpoint)
 	id := randHex(4)
@@ -173,8 +173,34 @@ func (c *Client) reqWithPayloadAndPath(method string, object Findable, path stri
 	if err != nil {
 		return Result{}, err
 	}
-	request := newRequest(method, path, c.Token, serializedObject)
+	request, _ := newRequest(method, c.APIRoot+path, c.Token, serializedObject)
 	return c.performRequest(request)
+}
+
+// performRequest performs a request using the given parameters and
+// returns a struct that contains the HTTP status code and payload from
+// the server's response as well as metadata such as the response time.
+func (c Client) performRequest(req request) (Result, error) {
+	desc := "Client.performRequest"
+
+	req.handleObject()
+	req.addHeaders(req.Token, c.APIKey)
+
+	resp, err := doRequest(&http.Client{
+		Transport: insecureTransport()},
+		req.httpRequest,
+	)
+	if err != nil {
+		Log.WithFields(map[string]interface{}{
+			"error":  err,
+			"source": "doRequest",
+		}).Error()
+		return Result{}, err
+	}
+
+	result := Result{req, resp}
+	result.Report(desc)
+	return result, nil
 }
 
 // insecureTransport avoids leaks by memoizing a single transport.
@@ -187,67 +213,6 @@ func insecureTransport() *http.Transport {
 		}
 	}
 	return transport
-}
-
-// performRequest performs a request using the given parameters and
-// returns a struct that contains the HTTP status code and payload from
-// the server's response as well as metadata such as the response time.
-func (c Client) performRequest(p request) (Result, error) {
-	desc := "Client.performRequest"
-	uri := c.APIRoot + p.Path
-
-	if p.requiresAnObject() && p.Object != nil {
-		var obj interface{}
-		json.Unmarshal(p.Object, &obj)
-		log.WithFields(map[string]interface{}{
-			"method": p.Verb,
-			"path":   p.Path,
-			"object": obj,
-		}).Debugf(desc)
-	}
-	req, err := http.NewRequest(p.Verb, uri, bytes.NewBuffer(p.Object))
-	if err != nil {
-		log.WithFields(map[string]interface{}{
-			"error":  err,
-			"source": "http.NewRequest",
-		}).Error(desc)
-		return Result{}, err
-	}
-	p.httpRequest = req
-
-	p.addHeaders(p.Token, c.APIKey)
-
-	vr, err := doRequest(&http.Client{Transport: insecureTransport()}, req)
-	if err != nil {
-		log.WithFields(map[string]interface{}{
-			"error":  err,
-			"source": "doRequest",
-		}).Error(desc)
-		return Result{}, err
-	}
-	result := Result{p, vr}
-
-	logResult(desc, result)
-
-	return result, nil
-}
-
-// logResult captures information that can help with analysis and
-// troubleshooting and maps HTTP status classes to analagous log levels.
-func logResult(desc string, result Result) {
-	logEntry := log.WithFields(map[string]interface{}{
-		"method":        result.Verb,
-		"path":          result.Path,
-		"response_body": string(result.Payload),
-	})
-	switch {
-	case result.StatusCode < 300:
-		logEntry.Debug(desc)
-	case result.StatusCode >= 300 && result.StatusCode <= 400:
-		logEntry.Warn(desc)
-	case result.StatusCode >= 400:
-		logEntry.Error(desc)
-	}
 }
 
 func tokenFrom(payload []byte) Token {

@@ -40,7 +40,7 @@ func timeResponse(c *http.Client, req *http.Request) (*http.Response, time.Durat
 	duration := time.Since(start) / time.Millisecond
 
 	if err != nil {
-		log.WithFields(map[string]interface{}{
+		Log.WithFields(map[string]interface{}{
 			"error": err,
 		}).Error(desc)
 	}
@@ -55,7 +55,7 @@ func analyzeResponse(resp *http.Response, duration time.Duration) (response, err
 	resp.Body.Close()
 
 	if err != nil {
-		log.WithFields(map[string]interface{}{
+		Log.WithFields(map[string]interface{}{
 			"error": err,
 		}).Error(desc + " (from ioutil.ReadAll)")
 		return response, err

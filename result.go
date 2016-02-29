@@ -44,13 +44,35 @@ func (r *Result) stats() map[string]interface{} {
 // Log provides a convenient way to output information about an HTTP request
 // the user is likely to want.
 func (r *Result) Log() *logrus.Entry {
-	return log.WithFields(r.stats())
+	return Log.WithFields(r.stats())
 }
 
 // LogBrief logs only an HTTP request's status code and response time.
 func (r *Result) LogBrief() *logrus.Entry {
-	return log.WithFields(map[string]interface{}{
+	return Log.WithFields(map[string]interface{}{
 		"response_time": r.Duration * time.Millisecond,
 		"status_code":   r.StatusCode,
 	})
+}
+
+// LogPayload includes the HTTP response payload.
+func (r *Result) LogPayload() *logrus.Entry {
+	fields := r.stats()
+	var payload interface{}
+	json.Unmarshal(r.Payload, &payload)
+	fields["payload"] = payload
+	return Log.WithFields(fields)
+}
+
+// Report captures information that can help with analysis and
+// troubleshooting and maps HTTP status classes to analagous log levels.
+func (r *Result) Report(desc string) {
+	switch {
+	case r.StatusCode < 300:
+		r.Log().Debug(desc)
+	case r.StatusCode >= 300 && r.StatusCode <= 400:
+		r.Log().Warn(desc)
+	case r.StatusCode >= 400:
+		r.Log().Error(desc)
+	}
 }

@@ -46,7 +46,7 @@ func (p *request) addHeaders(token Token, apiKey string) {
 func Marshal(object interface{}) ([]byte, error) {
 	bytes, err := json.MarshalIndent(object, "", "\t")
 	if err != nil {
-		log.WithFields(map[string]interface{}{
+		Log.WithFields(map[string]interface{}{
 			"error": err,
 		}).Error("sleepwalker.Marshal")
 		return nil, err
@@ -60,7 +60,7 @@ func Unmarshal(payload []byte) interface{} {
 	var dest interface{}
 	err := json.Unmarshal(payload, &dest)
 	if err != nil {
-		log.WithFields(map[string]interface{}{
+		Log.WithFields(map[string]interface{}{
 			"error": err,
 		}).Error("sleepwalker.Unmarshal")
 	}
