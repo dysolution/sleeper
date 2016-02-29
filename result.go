@@ -69,7 +69,7 @@ func (r *Result) LogPayload() *logrus.Entry {
 func (r *Result) Report(desc string) {
 	switch {
 	case r.StatusCode < 300:
-		r.Log().Debug(desc)
+		r.LogPayload().Debug(desc)
 	case r.StatusCode >= 300 && r.StatusCode <= 400:
 		r.Log().Warn(desc)
 	case r.StatusCode >= 400:
