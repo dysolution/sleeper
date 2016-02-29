@@ -3,22 +3,26 @@ package sleepwalker
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 )
 
-// A Request represents the specific API endpoint and action to take. The Object is optional and applies only to endpoints that create or update items (POST and PUT).
+// A Request represents the specific API endpoint and action to take. The
+// Object is optional and applies only to endpoints that create or update
+// items (POST and PUT).
 type request struct {
 	Verb        string `json:"method"`
 	Path        string `json:"path"`
+	RelPath     string `json:"rel_path"`
 	Token       Token  `json:"-"`
 	Object      []byte `json:"object"`
 	httpRequest *http.Request
 }
 
-func newRequest(verb string, path string, token Token, object []byte) request {
+func newRequest(verb, path string, token Token, object []byte) (request, error) {
 	req, err := http.NewRequest(verb, path, bytes.NewBuffer(object))
 	if err != nil {
-		log.Fatal(err)
+		return request{}, errors.New("http.NewRequest failed")
 	}
 	return request{
 		Verb:        verb,
@@ -26,14 +30,26 @@ func newRequest(verb string, path string, token Token, object []byte) request {
 		Token:       token,
 		Object:      object,
 		httpRequest: req,
-	}
+	}, nil
 }
 
-func (p *request) requiresAnObject() bool {
-	if p.Verb == "POST" || p.Verb == "PUT" || p.Verb == "DELETE" {
+func (r *request) requiresAnObject() bool {
+	if r.Verb == "POST" || r.Verb == "PUT" || r.Verb == "DELETE" {
 		return true
 	}
 	return false
+}
+
+func (rqst *request) handleObject() {
+	if rqst.requiresAnObject() && rqst.Object != nil {
+		var obj interface{}
+		json.Unmarshal(rqst.Object, &obj)
+		Log.WithFields(map[string]interface{}{
+			"method": rqst.Verb,
+			"path":   rqst.Path,
+			"object": obj,
+		}).Debugf("Client.performRequest")
+	}
 }
 
 func (p *request) addHeaders(token Token, apiKey string) {

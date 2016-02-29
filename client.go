@@ -1,7 +1,6 @@
 package sleepwalker
 
 import (
-	"bytes"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
@@ -156,7 +155,8 @@ func (c Client) GetPath(path string) (Result, error) {
 }
 
 func (c *Client) req(method, path string) (Result, error) {
-	return c.performRequest(newRequest(method, path, c.Token, nil))
+	req, _ := newRequest(method, c.APIRoot+path, c.Token, nil)
+	return c.performRequest(req)
 }
 
 func (c *Client) reqWithPayload(method string, object Findable) (Result, error) {
@@ -164,7 +164,7 @@ func (c *Client) reqWithPayload(method string, object Findable) (Result, error) 
 	if err != nil {
 		return Result{}, err
 	}
-	request := newRequest(method, object.Path(), c.Token, serializedObject)
+	request, _ := newRequest(method, c.APIRoot+object.Path(), c.Token, serializedObject)
 	return c.performRequest(request)
 }
 
