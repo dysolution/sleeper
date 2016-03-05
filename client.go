@@ -79,10 +79,10 @@ var clientIDs []string
 
 // A Client uses an access token to submit HTTP requests to a REST API.
 type Client struct {
-	Credentials `json:"-"`
-	Token       Token  `json:"-"`
-	ID          string `json:"id"`
-	APIRoot     string `json:"api_root"`
+	*Credentials `json:"-"`
+	Token        Token  `json:"-"`
+	ID           string `json:"id"`
+	APIRoot      string `json:"api_root"`
 }
 
 func randHex(n int) string {
@@ -95,19 +95,13 @@ func randHex(n int) string {
 }
 
 // GetClient returns a Client that can be used to send requests to a REST API.
-func GetClient(key, secret, username, password, oAuthEndpoint, apiRoot string, logger *logrus.Logger) *Client {
-	creds := Credentials{
-		APIKey:    key,
-		APISecret: secret,
-		Username:  username,
-		Password:  password,
+func GetClient(cfg *Config) *Client {
+	if cfg.Logger != nil {
+		Log = cfg.Logger
 	}
-	if logger != nil {
-		Log = logger
-	}
-	token := getToken(&creds, oAuthEndpoint)
+	token := getToken(cfg.Credentials, cfg.OAuthEndpoint)
 	id := randHex(4)
-	return &Client{creds, token, id, apiRoot}
+	return &Client{cfg.Credentials, token, id, cfg.APIRoot}
 }
 
 // String implements fmt.Stringer.

@@ -1,6 +1,17 @@
 package sleepwalker
 
-import "net/url"
+import (
+	"net/url"
+
+	"github.com/Sirupsen/logrus"
+)
+
+type Config struct {
+	Credentials   *Credentials
+	OAuthEndpoint string
+	APIRoot       string
+	Logger        *logrus.Logger
+}
 
 // Credentials represent a specific authorized application performing
 // operations on objects belonging to a specific user.
