@@ -105,50 +105,50 @@ func GetClient(cfg *Config) *Client {
 }
 
 // String implements fmt.Stringer.
-func (c Client) String() string {
+func (c *Client) String() string {
 	return c.ID
 }
 
 // Create uses the provided metadata to create and object
 // and returns it along with metadata about the HTTP request, including
 // response time.
-func (c Client) Create(object Findable) (Result, error) {
+func (c *Client) Create(object Findable) (Result, error) {
 	return c.reqWithPayload("POST", object)
 }
 
 // Update uses the provided metadata to update an object and returns
 // metadata about the HTTP request, including response time.
-func (c Client) Update(object Findable) (Result, error) {
+func (c *Client) Update(object Findable) (Result, error) {
 	return c.reqWithPayload("PUT", object)
 }
 
 // Put uses the provided metadata to perform an HTTP PUT against the provided
 // path and returns metadata about the HTTP request, including response time.
-func (c Client) Put(object Findable, path string) (Result, error) {
+func (c *Client) Put(object Findable, path string) (Result, error) {
 	return c.reqWithPayloadAndPath("PUT", object, path)
 }
 
 // Delete destroys the object described by the provided object, as long as
 // enough data is provided to unambiguously identify it to the API, and returns
 // metadta about the HTTP request, including response time.
-func (c Client) Delete(object Findable) (Result, error) {
+func (c *Client) Delete(object Findable) (Result, error) {
 	return c.req("DELETE", object.Path())
 }
 
 // Get uses the provided metadata to request an object from the API
 // and returns it along with metadata about the HTTP request, including
 // response time.
-func (c Client) Get(object Findable) (Result, error) {
+func (c *Client) Get(object Findable) (Result, error) {
 	return c.req("GET", object.Path())
 }
 
 // GetPath performs an HTTP GET against the provided path and returns metadata
 // about the HTTP request, including response time.
-func (c Client) GetPath(path string) (Result, error) {
+func (c *Client) GetPath(path string) (Result, error) {
 	return c.req("GET", path)
 }
 
-func (c Client) GetWithPayload(path string, payload []byte) (Result, error) {
+func (c *Client) GetWithPayload(path string, payload []byte) (Result, error) {
 	req, _ := newRequest("GET", c.APIRoot+path, c.Token, payload)
 	return c.performRequest(req)
 }
@@ -179,7 +179,7 @@ func (c *Client) reqWithPayloadAndPath(method string, object Findable, path stri
 // performRequest performs a request using the given parameters and
 // returns a struct that contains the HTTP status code and payload from
 // the server's response as well as metadata such as the response time.
-func (c Client) performRequest(req request) (Result, error) {
+func (c *Client) performRequest(req request) (Result, error) {
 	desc := "Client.performRequest"
 
 	req.handleObject()
