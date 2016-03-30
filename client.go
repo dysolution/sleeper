@@ -69,8 +69,8 @@ func getToken(credentials *Credentials, oAuthEndpoint string) Token {
 
 	payload, err := ioutil.ReadAll(resp.Body)
 	Log.WithFields(map[string]interface{}{
-		"status":  resp.Status,
-		"payload": string(payload),
+		"status":           resp.Status,
+		"response_payload": string(payload),
 	}).Debug(desc)
 	return tokenFrom(payload)
 }
@@ -146,6 +146,11 @@ func (c Client) Get(object Findable) (Result, error) {
 // about the HTTP request, including response time.
 func (c Client) GetPath(path string) (Result, error) {
 	return c.req("GET", path)
+}
+
+func (c Client) GetWithPayload(path string, payload []byte) (Result, error) {
+	req, _ := newRequest("GET", c.APIRoot+path, c.Token, payload)
+	return c.performRequest(req)
 }
 
 func (c *Client) req(method, path string) (Result, error) {

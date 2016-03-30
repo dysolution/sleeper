@@ -14,12 +14,12 @@ type Result struct {
 	response
 }
 
-// Marshal serializes a FulfilledRequest into a byte stream.
+// Marshal serializes a Result into a byte stream.
 func (r *Result) Marshal() ([]byte, error) {
 	return json.Marshal(r)
 }
 
-// MarshalIndent serializes a FulfilledRequest into indented JSON.
+// MarshalIndent serializes a Result into indented JSON.
 func (r *Result) MarshalIndent() ([]byte, error) {
 	return json.MarshalIndent(r, "", "    ")
 }
@@ -58,9 +58,15 @@ func (r *Result) LogBrief() *logrus.Entry {
 // LogPayload includes the HTTP response payload.
 func (r *Result) LogPayload() *logrus.Entry {
 	fields := r.stats()
-	var payload interface{}
-	json.Unmarshal(r.Payload, &payload)
-	fields["payload"] = payload
+
+	var requestPayload interface{}
+	var responsePayload interface{}
+
+	json.Unmarshal(r.Object, &requestPayload)
+	json.Unmarshal(r.Payload, &responsePayload)
+
+	fields["request_payload"] = requestPayload
+	fields["response_payload"] = responsePayload
 	return Log.WithFields(fields)
 }
 
